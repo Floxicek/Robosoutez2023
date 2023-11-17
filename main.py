@@ -1,73 +1,104 @@
 #!/usr/bin/env pybricks-micropython
+
 from pybricks.hubs import EV3Brick
 from pybricks.ev3devices import (
     Motor,
-    TouchSensor,
     ColorSensor,
     UltrasonicSensor,
-    GyroSensor,
 )
-from pybricks.parameters import Port, Stop, Direction, Button, Color
-from pybricks.tools import wait, StopWatch, DataLog
-from pybricks.robotics import DriveBase
+from pybricks.parameters import Port, Stop, Direction, Color
+from pybricks.tools import wait, StopWatch
+from pybricks.media.ev3dev import Font
 
 
-MAX_SPEED = 1500
-WHEEL_DIAMETER = 42
-AXLE_TRACK = 165
+max_wheel_speed = 300
+wheel_diameter = 53.9
+axle_track = 193
+
+max_lift_speed = 1500
+lift_max_height = 1100
+distance_from_wall = 100
 
 
-# Initialize the EV3 Brick.
+# Initialize ports
 ev3 = EV3Brick()
-
-# Initialize the motors.
 left_motor = Motor(Port.C)
 right_motor = Motor(Port.B)
-belt_motor = Motor(Port.D)
+lift_motor = Motor(Port.D, Direction.COUNTERCLOCKWISE)
+distance_sensor = UltrasonicSensor(Port.S2)
+color_sensor = ColorSensor(Port.S3)
 
-distance_sensor = UltrasonicSensor(Port.S3)
 
-ev3.screen.set_font(Font(size=18))
+ev3.screen.set_font(Font(size=15))
 
+## Lift motor INIT
 ev3.screen.print("Reset belt motor rotation")
-belt_motor.run_until_stalled(-MAX_SPEED, Stop.BRAKE)
-reset_angle(0)
-
-ev3.screen.print("Reset completed")
-
-
-def liftCube():
-    belt_motor.run_angle(max_speed, 10000, wait=False)
+lift_motor.dc(-80)
+wait(2000)
+lift_motor.dc(0)
+wait(200)
+lift_motor.reset_angle(0)
+wait(500)
 
 
-def liftDown():
-    belt_motor.run_target(MAX_SPEED, 0)
-    # without smooth acceleration track_target(target_angle)
+# Initialize functions
+def elevatorUp():
+    lift_motor.run_target(max_lift_speed, lift_max_height, Stop.HOLD, False)
 
-    # belt_motor.run_angle(-max_speed, 10000, wait=False)
+
+def elevatorDown():
+    lift_motor.run_target(max_lift_speed, 0, Stop.HOLD, False)
+    # ev3.screen.print("Lift motor down")
+    # ev3.screen.print("{angle} / 0".format(angle=lift_motor.angle()))
 
 
 def dropCube():
-    belt_motor.run_time(1000, MAX_SPEED)
-    belt_motor.brake()
+    lift_motor.dc(80)
 
 
-def measureDistance():
-    ev3.screen.print(distance_sensor.distance())
+def move():
+    move_err = distance_from_wall - distance_sensor.distance()
+
+    if abs(move_err) > 2 and abs(move_err < 200):
+        corr_speed = 2
+
+        left_motor.run(max_wheel_speed - move_err * corr_speed)
+        right_motor.run(max_wheel_speed + move_err * corr_speed)
 
 
-# Initialize the drive base.
-robot = DriveBase(left_motor, right_motor, WHEEL_DIAMETER, AXLE_TRACK)
+def check_color():
+    if cube_detected:
+        return False
 
-robot.settings(max_speed, 1000000, 90, 90)
-# Go forward and backwards for one meter.
-robot.straight(1000)
-robot.straight(-1000)
+    measure = color_sensor.rgb()
+
+    if measure[0] > 8 or measure[1] > 8 or measure[2] > 8:
+        ev3.light.on(Color.RED)
+        ev3.speaker.beep(frequency=900, duration=50)
+        cube_passed_clock.reset()
+        elevatorUp()
+        return True
+    return False
 
 
-# Turn clockwise by 360 degrees and back again.
-robot.turn(360)
-robot.turn(-360)
+cube_passed_clock = StopWatch()
+cube_grabbed_clock = StopWatch()
+cube_detected = False
+cube_grabbed = False
 
+elevatorUp()
 
-ev3.speaker.beep()
+while True:
+    if check_color():
+        cube_detected = True
+
+    if cube_passed_clock.time() > 1500 and cube_detected:
+        ev3.light.on(Color.GREEN)
+        elevatorDown()
+        cube_detected = False
+        cube_grabbed = True
+        cube_grabbed_clock.reset()
+    
+
+    if cube_grabbed_clock > 300 and cube_grabbed:
+        elevatorUp
