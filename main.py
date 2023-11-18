@@ -26,7 +26,7 @@ cube_passed_clock = StopWatch()
 cube_passed_clock.pause()
 cube_passed_clock.reset()
 
-block_wait_time = 1700
+block_wait_time = 500
 
 number_of_cubes = 0
 
@@ -42,23 +42,23 @@ ev3.screen.print("Reset belt motor rotation")
 lift_motor.dc(-80)
 wait(2000)
 lift_motor.dc(0)
-wait(200)
-lift_motor.reset_angle(0)
 wait(500)
+lift_motor.reset_angle(0)
+wait(100)
 
 
-def elevatorUp():
+def liftUp():
     lift_motor.run_target(max_lift_speed, lift_max_height, Stop.HOLD, False)
 
 
-def elevatorDown(wait=False):
+def liftDown(wait=False):
     lift_motor.run_target(max_lift_speed, 0, Stop.HOLD, wait)
     # ev3.screen.print("Lift motor down")
     # ev3.screen.print("{angle} / 0".format(angle=lift_motor.angle()))
 
 
 def dropCube():
-    lift_motor.run_target(max_lift_speed, 1600, Stop.HOLD, False)
+    lift_motor.run_target(max_lift_speed, 1500, Stop.HOLD, False)
 
 
 def move():
@@ -82,6 +82,7 @@ def check_color():
             ev3.light.on(Color.RED)
             ev3.speaker.beep(frequency=900, duration=300)
             cube_passed_clock.reset()
+            cube_passed_clock.resume()
             number_of_cubes = number_of_cubes + 1
             print(number_of_cubes)
             return True
@@ -89,10 +90,10 @@ def check_color():
         return False
 
 
-elevatorUp()
+liftUp()
 
 while True:
-    if number_of_cubes == 8:
+    if number_of_cubes == 4:
         dropCube()
         wait(200)
         left_motor.run(-deposit_rotate_speed)
@@ -102,23 +103,24 @@ while True:
         wait(7000)
         left_motor.stop()
         right_motor.stop()
-        elevatorDown(True)
+        liftDown(True)
         break
 
     else:
-        move()
-        if check_color():
-            cube_passed_clock.resume()
-        elif cube_passed_clock.time() > block_wait_time:
+        # move()
+        check_color()
+
+        first_cube = number_of_cubes == 1
+
+        if cube_passed_clock.time() > block_wait_time:
             ev3.light.on(Color.GREEN)
-            elevatorDown()
+            liftDown()
 
             cube_passed_clock.pause()
             cube_passed_clock.reset()
             ev3.light.on(color=Color.BLACK)
         elif lift_motor.angle() <= 5:
-            elevatorUp()
+            liftUp()
 
 
 ev3.speaker.beep(300, 1000)
-##When cube is early
