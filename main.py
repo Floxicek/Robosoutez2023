@@ -8,7 +8,7 @@ from pybricks.media.ev3dev import Font
 from pybricks.robotics import DriveBase
 
 
-max_wheel_speed = [100, 90]
+max_wheel_speed = [110, 90]
 wheel_diameter = 53.9
 axle_track = 193
 
@@ -31,9 +31,11 @@ cube_passed_clock.reset()
 last_block_color = 0
 
 
-block_wait_time = 260
+block_wait_time = 0
 
 number_of_cubes = 0
+
+has_turned = False
 
 # Initialize ports
 ev3 = EV3Brick()
@@ -53,7 +55,7 @@ lift_motor.control.stall_tolerances(10, 200)
 
 # left_motor.control.stall_tolerances(0, 15)
 
-ev3.screen.set_font(Font(size=12))
+ev3.screen.set_font(Font(size=20))
 ev3.screen.print("Reset belt motor rotation")
 lift_motor.run_until_stalled(-max_lift_speed, Stop.BRAKE, 50)
 wait(500)
@@ -81,18 +83,17 @@ def dropCube():
 
 def move():
     measured_distance = distance_sensor.distance()
-    if measured_distance > 500:
-        robot.drive(max_wheel_speed[distance_index], -10)
-        print("Vyrovnavani")
+    if measured_distance > 800:
+        robot.drive(max_wheel_speed[distance_index] / 5, 0)
+        print("Pomalu Rovně")
         print(measured_distance)
 
     else:
         move_err = (
             distance_from_wall[distance_index] - measured_distance
         ) * PROPORTIONAL_GAIN
-
-        print(move_err)
-        print(measured_distance)
+        ev3.screen.draw_text(50, 20, move_err)
+        ev3.screen.draw_text(50, 60, measured_distance)
         robot.drive(max_wheel_speed[distance_index], move_err)
 
 
@@ -135,6 +136,7 @@ def check_color():
                 cube_passed_clock.reset()
                 cube_passed_clock.resume()
                 number_of_cubes = number_of_cubes + 1
+                ev3.screen.draw_text(0, 0, number_of_cubes)
                 print("Number of cubes: {i}".format(i=number_of_cubes))
 
 
@@ -156,34 +158,22 @@ print(robot.distance())
 # liftDown(True)
 # wait(200)
 
-# gyro_sensor.reset_angle(0)
-# print(gyro_sensor.angle())
-# robot.straight(1000)
-# print(gyro_sensor.angle())
-# robot.turn(90)
-# print(gyro_sensor.angle())
-# robot.straight(1000)
-# print(gyro_sensor.angle())
-
 while True:
+    ev3.screen.clear()
     move()
     check_color()
 
-    if (
-        number_of_cubes == 4
-        and robot.distance() > 100
-        and robot.angle() < 40
-        and robot.angle() > -40
-    ):
+    if number_of_cubes == 4 and not has_turned:
         liftDown()
         robot.straight(180)  # 180
-        robot.drive(max_wheel_speed[distance_index], 28)  ## 1000, 2000
+        robot.drive(max_wheel_speed[distance_index], 28)
         wait(500)
         liftUp()
-        wait(2000)
+        wait(2300)
         robot.stop()
         distance_index = 1
         print(robot.distance())
+        has_turned = True
 
     if cube_passed_clock.time() > block_wait_time:
         liftDown()
@@ -199,13 +189,15 @@ while True:
 
         print(robot.state())
         dropCube()
+        ev3.speaker.beep(200, 100)
+        wait(100)
+        ev3.speaker.beep(200, 100)
+        wait(100)
+        ev3.speaker.beep(200, 100)
         wait(200)
         robot.turn(120)
         robot.straight(800)
-        robot.turn(-120)
+        robot.turn(-360)
         robot.straight(-400)
         liftDown(True)
         break
-
-
-ev3.speaker.beep(200, 1000)
