@@ -8,7 +8,7 @@ from pybricks.media.ev3dev import Font
 from pybricks.robotics import DriveBase
 
 
-max_wheel_speed = [110, 90]
+max_wheel_speed = [110, 80]
 wheel_diameter = 53.9
 axle_track = 193
 
@@ -29,12 +29,10 @@ cube_passed_clock.pause()
 cube_passed_clock.reset()
 
 last_block_color = 0
-
-
-block_wait_time = 0
-
 number_of_cubes = 0
 
+
+lifting_cube = False
 has_turned = False
 
 # Initialize ports
@@ -73,8 +71,6 @@ def liftUp(wait=False):
 
 def liftDown(wait=False):
     lift_motor.run_target(max_lift_speed, 1, Stop.HOLD, wait)
-    # ev3.screen.print("Lift motor down")
-    # ev3.screen.print("{angle} / 0".format(angle=lift_motor.angle()))
 
 
 def dropCube():
@@ -119,7 +115,8 @@ def show_color(rgb):
 def check_color():
     global number_of_cubes
     global last_block_color
-    if cube_passed_clock.time() <= 0:
+    global lifting_cube
+    if not lifting_cube:
         measure = color_sensor.rgb()
 
         if (measure[0] > 20 or measure[1] > 20 or measure[2] > 20) and abs(
@@ -133,8 +130,7 @@ def check_color():
                 print("Cube {i}".format(i=last_block_color))
 
                 ev3.speaker.beep(frequency=900, duration=300)
-                cube_passed_clock.reset()
-                cube_passed_clock.resume()
+                lifting_cube = True
                 number_of_cubes = number_of_cubes + 1
                 ev3.screen.draw_text(0, 0, number_of_cubes)
                 print("Number of cubes: {i}".format(i=number_of_cubes))
@@ -148,15 +144,8 @@ print(robot.distance())
 
 # ev3.screen.print("Press button to continue")
 # while True:
-#    if Button.CENTER in ev3.buttons.pressed():
-#        break
-#
-# ev3.screen.clear()
-
-# number_of_cubes = 1
-# last_block_color = 1
-# liftDown(True)
-# wait(200)
+#     if Button.CENTER in ev3.buttons.pressed():
+#         break
 
 while True:
     ev3.screen.clear()
@@ -164,8 +153,9 @@ while True:
     check_color()
 
     if number_of_cubes == 4 and not has_turned:
+        number_of_cubes = number_of_cubes + 1
         liftDown()
-        robot.straight(180)  # 180
+        robot.straight(150)  # 180
         robot.drive(max_wheel_speed[distance_index], 28)
         wait(500)
         liftUp()
@@ -175,19 +165,14 @@ while True:
         print(robot.distance())
         has_turned = True
 
-    if cube_passed_clock.time() > block_wait_time:
+    if lifting_cube:
         liftDown()
-
-        cube_passed_clock.pause()
-        cube_passed_clock.reset()
-        # ev3.light.on(color=Color.BLACK)
-    elif lift_motor.angle() <= 10 and lift_motor.control.done():
+    if lift_motor.angle() <= 10:
+        lifting_cube = False
+    if lift_motor.angle() <= 10 and lift_motor.control.done():
         liftUp()
 
     if number_of_cubes == 8:
-        # robot.straight(1000)
-
-        print(robot.state())
         dropCube()
         ev3.speaker.beep(200, 100)
         wait(100)
