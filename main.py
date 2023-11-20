@@ -201,3 +201,16 @@ while True:
         robot.straight(-400)
         liftDown(True)
         break
+
+beep_duration = 200
+beep_wait = 20
+
+ev3.speaker.beep(200, beep_duration)
+wait(beep_wait)
+ev3.speaker.beep(500, beep_duration)
+wait(beep_wait)
+ev3.speaker.beep(300, beep_duration)
+wait(beep_wait)
+ev3.speaker.beep(500, beep_duration)
+wait(beep_wait)
+ev3.speaker.beep(800, beep_duration)
