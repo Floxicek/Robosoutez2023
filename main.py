@@ -47,6 +47,7 @@ color_sensor = ColorSensor(Port.S3)
 robot = DriveBase(left_motor, right_motor, wheel_diameter, axle_track)
 
 
+# Kdyztak koment tady kdyz motor nefunguje
 lift_motor.control.limits(1000, 4000, 90)
 lift_motor.control.stall_tolerances(10, 200)
 
@@ -55,7 +56,7 @@ lift_motor.control.stall_tolerances(10, 200)
 
 ev3.screen.set_font(Font(size=20))
 ev3.screen.print("Reset belt motor rotation")
-lift_motor.run_until_stalled(-max_lift_speed, Stop.BRAKE, 50)
+lift_motor.run_until_stalled(-max_lift_speed, Stop.BRAKE, 70)
 wait(500)
 lift_motor.reset_angle(0)
 wait(100)
@@ -136,11 +137,26 @@ def check_color():
                 print("Number of cubes: {i}".format(i=number_of_cubes))
 
 
+def turn1():
+    global has_turned
+    number_of_cubes = number_of_cubes + 1
+    liftDown()
+    print("Driven distance {dis}".format(dis=robot.distance()))
+    robot.straight(230)  # 180
+    robot.drive(max_wheel_speed[distance_index], 28)
+    wait(500)
+    liftUp()
+    wait(2300)
+    robot.stop()
+    distance_index = 1
+    print(robot.distance())
+    has_turned = True
+
+
 liftUp(True)
-
 robot.reset()
-
 print(robot.distance())
+print("Settings: {s}".format(s=robot.settings()))
 
 # ev3.screen.print("Press button to continue")
 # while True:
@@ -153,17 +169,7 @@ while True:
     check_color()
 
     if number_of_cubes == 4 and not has_turned:
-        number_of_cubes = number_of_cubes + 1
-        liftDown()
-        robot.straight(150)  # 180
-        robot.drive(max_wheel_speed[distance_index], 28)
-        wait(500)
-        liftUp()
-        wait(2300)
-        robot.stop()
-        distance_index = 1
-        print(robot.distance())
-        has_turned = True
+        turn1()
 
     if lifting_cube:
         liftDown()
@@ -174,14 +180,15 @@ while True:
 
     if number_of_cubes == 8:
         dropCube()
-        ev3.speaker.beep(200, 100)
-        wait(100)
-        ev3.speaker.beep(200, 100)
-        wait(100)
-        ev3.speaker.beep(200, 100)
-        wait(200)
+        # ev3.speaker.beep(200, 100)
+        # wait(100)
+        # ev3.speaker.beep(200, 100)
+        # wait(100)
+        # ev3.speaker.beep(200, 100)
+        robot.stop()
+        robot.settings(100000, 1000, 300, 10000)  # max 1020 prev 400
         robot.turn(120)
-        robot.straight(800)
+        robot.straight(600)
         robot.turn(-360)
         robot.straight(-400)
         liftDown(True)
