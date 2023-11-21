@@ -128,12 +128,12 @@ def check_color():
                 return
             else:
                 last_block_color = new_color
-                print("Cube {i}".format(i=last_block_color))
+                print("Cube color {i}".format(i=last_block_color))
 
-                ev3.speaker.beep(frequency=900, duration=300)
+                ev3.speaker.beep(frequency=900, duration=50)
                 lifting_cube = True
                 number_of_cubes = number_of_cubes + 1
-                ev3.screen.draw_text(0, 0, number_of_cubes)
+                ev3.screen.draw_text(10, 10, number_of_cubes)
                 print("Number of cubes: {i}".format(i=number_of_cubes))
 
 
@@ -149,7 +149,7 @@ def turn1():
     wait(2300)
     robot.stop()
     distance_index = 1
-    print(robot.distance())
+    print("Distance: ".format(robot.distance()))
     has_turned = True
 
 
