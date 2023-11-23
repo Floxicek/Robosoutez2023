@@ -68,13 +68,13 @@ def liftDown(wait=False):
 
 
 def dropCube():
-    lift_motor.run_until_stalled(max_lift_speed, Stop.BRAKE, 70)
+    lift_motor.run_until_stalled(max_lift_speed, Stop.BRAKE, 80)
 
 
 def move():
     measured_distance = distance_sensor.distance()
     if measured_distance > 2500:
-        robot.drive(max_wheel_speed[wall_index] / 5, 0)
+        robot.drive(max_wheel_speed[wall_index] / 5, 60)
         print("Pomalu Rovně")
         print(measured_distance)
     else:
@@ -131,6 +131,9 @@ def check_color():
 
                 if cube_count == 9:
                     robot.reset()
+                elif cube_count == 2:
+                    print(robot.distance())
+                    robot.reset()
 
 
 def turn():
@@ -180,16 +183,13 @@ lift_motor.run_until_stalled(-max_lift_speed, Stop.BRAKE, 50)
 ev3.speaker.beep(300, 300)
 wait(800)
 lift_motor.reset_angle(0)
-print(lift_motor.angle())
 wait(100)
 
-print(lift_motor.angle())
 ev3.speaker.set_volume(100)
 
 
 liftUp(True, True)
 robot.reset()
-print(robot.distance())
 print("Settings: {s}".format(s=robot.settings()))
 
 time_passed.resume()
@@ -207,7 +207,7 @@ while True:
     move()
     check_color()
 
-    if robot.distance() > 1185 and not has_turned:
+    if robot.distance() > 800 and not has_turned:
         turn()
 
     if lifting_cube:
@@ -215,10 +215,14 @@ while True:
     if lift_motor.angle() <= 10:
         lifting_cube = False
     if lift_motor.angle() <= 10 and lift_motor.control.done():
-        liftUp()
+        if cube_count == 7:
+            robot.straight(30)
+            liftUp()
+        else:
+            liftUp()
 
     if cube_count == 8:  # or distance > blabla  # TODO add failsafe
-        print("Return distance from start {dist}".format(dist=robot.distance()))
+        # print("Return distance from start {dist}".format(dist=robot.distance()))
         liftUp()
         wait(400)
         dropCube()
@@ -256,7 +260,7 @@ while True:
     check_color()
 
     # if  and not has_turned:
-    if robot.distance() > 1135 and cube_count >= 9 and not has_turned:
+    if robot.distance() > 1105 and cube_count >= 9 and not has_turned:
         print(robot.distance())
         turn2()
 
@@ -265,11 +269,15 @@ while True:
     if lift_motor.angle() <= 10:
         lifting_cube = False
     if lift_motor.angle() <= 10 and lift_motor.control.done():
-        liftUp()
+        if cube_count == 15:
+            robot.straight(30)
+            liftUp()
+        else:
+            liftUp()
 
     if cube_count == 16:
         # TODO pick up last cube
-        print("Return distance from  start {dist}".format(dist=robot.distance()))
+        # print("Return distance from start {dist}".format(dist=robot.distance()))
         liftUp()
         wait(400)
         dropCube()
@@ -277,7 +285,7 @@ while True:
         robot.settings(100000, 1000, 80, 10000)  # max 1020 prev 400
         robot.turn(125)
         robot.straight(700)
-        robot.turn(-125)
+        robot.turn(-40)  # 125
         robot.straight(-600)
         break
 
@@ -287,14 +295,11 @@ time_passed.pause()
 print(time_passed.time() / 1000)
 ev3.speaker.beep(200, 3000)
 
-liftDown(False)
 
 beep_duration = 200
 beep_wait = 0
 
-print(time_passed.time())
-
-wait(400)
+wait(200)
 
 ev3.speaker.beep(200, beep_duration)
 wait(beep_wait)
@@ -305,3 +310,10 @@ wait(beep_wait)
 ev3.speaker.beep(500, beep_duration)
 wait(beep_wait)
 ev3.speaker.beep(800, beep_duration)
+
+ev3.screen.print("Press button to continue")
+while True:
+    if Button.CENTER in ev3.buttons.pressed():
+        break
+
+liftDown(True)
