@@ -1,7 +1,7 @@
 #!/usr/bin/env pybricks-micropython
 
 from pybricks.hubs import EV3Brick
-from pybricks.ev3devices import Motor, ColorSensor, UltrasonicSensor, GyroSensor
+from pybricks.ev3devices import Motor, ColorSensor, UltrasonicSensor
 from pybricks.parameters import Port, Stop, Direction, Color, Button
 from pybricks.tools import wait, StopWatch
 from pybricks.media.ev3dev import Font
@@ -16,12 +16,12 @@ max_lift_speed = 1000
 lift_max_height = 1250  # TODO tohle možná snížit
 drop_lift_height = 1490
 distance_from_wall = [
-    40,
+    44,
     189,
 ]
 wall_index = 0
 
-correction = 0.5
+correction = [0.5, 0.2]
 
 time_passed = StopWatch()
 time_passed.pause()
@@ -44,28 +44,23 @@ robot = DriveBase(left_motor, right_motor, wheel_diameter, axle_track)
 
 
 # Kdyztak koment tady kdyz motor nefunguje
-lift_motor.control.limits(1000, 4000, 90)
+lift_motor.control.limits(1000, 4000, 80)
 lift_motor.control.stall_tolerances(10, 200)
 
 
 # left_motor.control.stall_tolerances(0, 15)
 
 ev3.screen.set_font(Font(size=20))
-ev3.screen.print("Reset belt motor rotation")
-lift_motor.run_until_stalled(-max_lift_speed, Stop.BRAKE, 70)
-wait(800)
-lift_motor.reset_angle(0)
-wait(100)
-
-ev3.speaker.set_volume(100)
-
 
 # left_motor.control.pid(0, 0, 0, 0, 0)
 # right_motor.control.pid(0, 0, 0, 0, 0)
 
 
-def liftUp(wait=False):
-    lift_motor.run_target(max_lift_speed, lift_max_height, Stop.HOLD, wait)
+def liftUp(wait=False, start_pos=False):
+    if start_pos:
+        lift_motor.run_target(max_lift_speed, lift_max_height * 0.8, Stop.HOLD, wait)
+    else:
+        lift_motor.run_target(max_lift_speed, lift_max_height, Stop.HOLD, wait)
 
 
 def liftDown(wait=False):
@@ -73,20 +68,22 @@ def liftDown(wait=False):
 
 
 def dropCube():
-    lift_motor.run_until_stalled(max_lift_speed, Stop.BRAKE, 80)
+    lift_motor.run_until_stalled(max_lift_speed, Stop.BRAKE, 70)
 
 
 def move():
     measured_distance = distance_sensor.distance()
-    if measured_distance > 800:
+    if measured_distance > 2500:
         robot.drive(max_wheel_speed[wall_index] / 5, 0)
         print("Pomalu Rovně")
         print(measured_distance)
-
     else:
-        move_err = (distance_from_wall[wall_index] - measured_distance) * correction
+        move_err = (distance_from_wall[wall_index] - measured_distance) * correction[
+            wall_index
+        ]
         ev3.screen.draw_text(50, 20, move_err)
-        ev3.screen.draw_text(50, 60, measured_distance)
+        ev3.screen.draw_text(50, 40, measured_distance)
+        ev3.screen.draw_text(50, 60, wall_index)
         robot.drive(max_wheel_speed[wall_index], move_err)
 
 
@@ -116,9 +113,9 @@ def check_color():
     if not lifting_cube:
         measure = color_sensor.rgb()
 
-        if (measure[0] > 20 or measure[1] > 20 or measure[2] > 20) and abs(
-            lift_max_height - lift_motor.angle()
-        ) < 150:
+        if (measure[0] > 20 or measure[1] > 20 or measure[2] > 20) and (
+            abs(lift_max_height - lift_motor.angle()) < 150 or cube_count == 0
+        ):
             new_color = show_color(measure)
             if new_color == last_block_color:
                 return
@@ -132,15 +129,20 @@ def check_color():
                 ev3.screen.draw_text(10, 10, cube_count)
                 print("Number of cubes: {i}".format(i=cube_count))
 
+                if cube_count == 9:
+                    robot.reset()
+
 
 def turn():
     global has_turned
     global cube_count
     global wall_index
+    global last_block_color
     cube_count = cube_count + 1
-    liftDown()
+    last_block_color = 0
     print("Driven distance {dis}".format(dis=robot.distance()))
-    robot.straight(280)  # 180
+    liftDown()
+    robot.straight(120)  # 180
     robot.drive(max_wheel_speed[wall_index], 28)
     # robot.curve()
     wait(500)
@@ -156,10 +158,12 @@ def turn2():
     global has_turned
     global cube_count
     global wall_index
+    global last_block_color
     cube_count = cube_count + 1
+    last_block_color = 0
     liftDown()
     print("Driven distance {dis}".format(dis=robot.distance()))
-    robot.straight(220)  # 180
+    robot.straight(120)  # 180
     robot.drive(max_wheel_speed[wall_index], 28)
     # robot.curve()
     wait(500)
@@ -171,7 +175,19 @@ def turn2():
     has_turned = True
 
 
-liftUp(True)
+ev3.screen.print("Reset belt motor rotation")
+lift_motor.run_until_stalled(-max_lift_speed, Stop.BRAKE, 50)
+ev3.speaker.beep(300, 300)
+wait(800)
+lift_motor.reset_angle(0)
+print(lift_motor.angle())
+wait(100)
+
+print(lift_motor.angle())
+ev3.speaker.set_volume(100)
+
+
+liftUp(True, True)
 robot.reset()
 print(robot.distance())
 print("Settings: {s}".format(s=robot.settings()))
@@ -191,7 +207,7 @@ while True:
     move()
     check_color()
 
-    if robot.distance() > 1160 and not has_turned:
+    if robot.distance() > 1185 and not has_turned:
         turn()
 
     if lifting_cube:
@@ -201,7 +217,8 @@ while True:
     if lift_motor.angle() <= 10 and lift_motor.control.done():
         liftUp()
 
-    if cube_count == 8:  # TODO add failsafe
+    if cube_count == 8:  # or distance > blabla  # TODO add failsafe
+        print("Return distance from start {dist}".format(dist=robot.distance()))
         liftUp()
         wait(400)
         dropCube()
@@ -214,15 +231,15 @@ while True:
         robot.settings(100000, 1000, 80, 10000)  # max 1020 prev 400
         robot.turn(125)
         robot.straight(700)
+        robot.turn(40)
+        robot.turn(-40)
+        robot.straight(-800)  # TODO Improve this value
+        liftUp(False, True)
+        robot.turn(-70)  # TODO Improve this value
+        robot.straight(290)
         robot.turn(30)
-        robot.turn(-30)
-        robot.straight(-730) #BAD VALUES HERE
-        robot.turn(-70)
-        robot.straight(230)
-        robot.turn(35)
-        robot.straight(-100)
         break
-
+wait(200)
 wall_index = 0
 has_turned = False
 robot.stop()
@@ -232,12 +249,15 @@ robot.settings(125, 501, 74, 298)
 while True:
     if time_passed.time() > 88000:
         print("Overtime")
+        break
 
     ev3.screen.clear()
     move()
     check_color()
 
-    if cube_count == 12 and not has_turned:
+    # if  and not has_turned:
+    if robot.distance() > 1135 and cube_count >= 9 and not has_turned:
+        print(robot.distance())
         turn2()
 
     if lifting_cube:
@@ -248,6 +268,8 @@ while True:
         liftUp()
 
     if cube_count == 16:
+        # TODO pick up last cube
+        print("Return distance from  start {dist}".format(dist=robot.distance()))
         liftUp()
         wait(400)
         dropCube()
@@ -256,7 +278,7 @@ while True:
         robot.turn(125)
         robot.straight(700)
         robot.turn(-125)
-        robot.straight(-550)
+        robot.straight(-600)
         break
 
 
@@ -268,7 +290,7 @@ ev3.speaker.beep(200, 3000)
 liftDown(False)
 
 beep_duration = 200
-beep_wait = 10
+beep_wait = 0
 
 print(time_passed.time())
 
