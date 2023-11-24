@@ -16,8 +16,8 @@ max_lift_speed = 1000
 lift_max_height = 1250  # TODO tohle možná snížit
 drop_lift_height = 1490
 distance_from_wall = [
-    44,
-    189,
+    46,
+    200,
 ]
 wall_index = 0
 
@@ -192,12 +192,12 @@ liftUp(True, True)
 robot.reset()
 print("Settings: {s}".format(s=robot.settings()))
 
-time_passed.resume()
+ev3.screen.print("Press button to continue")
+while True:
+    if Button.CENTER in ev3.buttons.pressed():
+        break
 
-# ev3.screen.print("Press button to continue")
-# while True:
-#     if Button.CENTER in ev3.buttons.pressed():
-#         break
+time_passed.resume()
 
 while True:
     if time_passed.time() > 88000:
@@ -207,7 +207,7 @@ while True:
     move()
     check_color()
 
-    if robot.distance() > 800 and not has_turned:
+    if robot.distance() > 810 and not has_turned:
         turn()
 
     if lifting_cube:
@@ -260,7 +260,7 @@ while True:
     check_color()
 
     # if  and not has_turned:
-    if robot.distance() > 1105 and cube_count >= 9 and not has_turned:
+    if robot.distance() > 1125 and cube_count >= 9 and not has_turned:
         print(robot.distance())
         turn2()
 
@@ -286,7 +286,7 @@ while True:
         robot.turn(125)
         robot.straight(700)
         robot.turn(-40)  # 125
-        robot.straight(-600)
+        robot.straight(-500)
         break
 
 
